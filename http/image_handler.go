@@ -6,7 +6,12 @@ import (
 	"fmt"
 	"io"
 
+	"strings"
+
 	"github.com/j0hnsmith/progimage"
+	"github.com/j0hnsmith/progimage/image/gif"
+	"github.com/j0hnsmith/progimage/image/jpeg"
+	"github.com/j0hnsmith/progimage/image/png"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -15,6 +20,7 @@ const MaxReadBytes = 50 * 1024 * 1024 // 50mb
 type ImageHandler struct {
 	*httprouter.Router
 
+	Transformers map[string]progimage.ImageTypeTransformer
 	ImageService progimage.ImageService
 }
 
@@ -23,6 +29,11 @@ func NewImageHandler(is progimage.ImageService) *ImageHandler {
 	h := ImageHandler{
 		Router:       httprouter.New(),
 		ImageService: is,
+		Transformers: map[string]progimage.ImageTypeTransformer{
+			"png": png.Transformer,
+			"jpg": jpeg.Transformer,
+			"gif": gif.Transformer,
+		},
 	}
 	h.POST("/image/create", h.handleCreateImage)
 	h.GET("/image/:id", h.handleGetImage)
@@ -51,12 +62,50 @@ func (h ImageHandler) handleCreateImage(w http.ResponseWriter, r *http.Request, 
 
 func (h ImageHandler) handleGetImage(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	ID := params.ByName("id")
+
+	s := strings.Split(ID, ".")
+	if len(s) == 2 {
+		h.handleGetImageWithExt(w, r, s[0], s[1])
+		return
+	}
+
+	h.handleGetImageNoExt(w, r, ID)
+	return
+}
+
+func (h ImageHandler) handleGetImageNoExt(w http.ResponseWriter, r *http.Request, ID string) {
 	img, err := h.ImageService.Get(ID)
 	if err != nil {
 		if err == progimage.ErrImageNotFound {
 			http.Error(w, fmt.Sprintf("image %s not found", ID), http.StatusNotFound)
 			return
 		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("ContentType", img.ContentType)
+	io.Copy(w, img.Data)
+}
+
+func (h ImageHandler) handleGetImageWithExt(w http.ResponseWriter, r *http.Request, ID, ext string) {
+	tr, ok := h.Transformers[ext]
+	if !ok {
+		http.Error(w, "unsupported image type", http.StatusBadRequest)
+		return
+	}
+	img, err := h.ImageService.Get(ID)
+	if err != nil {
+		if err == progimage.ErrImageNotFound {
+			http.Error(w, fmt.Sprintf("image %s not found", ID), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	img, err = tr.Transform(img)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

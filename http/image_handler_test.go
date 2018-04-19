@@ -12,6 +12,10 @@ import (
 
 	"encoding/json"
 
+	"os"
+
+	"strings"
+
 	"github.com/j0hnsmith/progimage"
 	pihttp "github.com/j0hnsmith/progimage/http"
 	"github.com/j0hnsmith/progimage/mock"
@@ -77,6 +81,70 @@ func TestGet_NotFound(t *testing.T) {
 
 	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("expected: %v got: %v", http.StatusNotFound, status)
+	}
+}
+
+func TestGet_WithExt(t *testing.T) {
+	h := NewImageHandler()
+
+	var getID string
+	var fp *os.File
+	h.ImageService.GetFunc = func(ID string) (progimage.Image, error) {
+		getID = ID
+
+		var err error
+		fp, err = os.Open("../testimages/test.jpg")
+		if err != nil {
+			return progimage.Image{}, err
+		}
+
+		return progimage.Image{ID: ID, Data: fp, ContentType: "image/jpeg"}, nil
+	}
+
+	expectedID := "foo.png"
+	req, err := http.NewRequest("GET", "/image/"+expectedID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("expected: %v got: %v", http.StatusOK, status)
+	}
+
+	if rr.Header().Get("ContentType") != "image/png" {
+		t.Errorf("expected ContentType image/png, got: %v", rr.Header().Get("ContentType"))
+	}
+
+	if getID != strings.Split(expectedID, ".")[0] {
+		t.Errorf("expected get id to be: %v got: %v", expectedID, getID)
+	}
+
+	fp.Close()
+}
+
+func TestGet_WithUnsupportedExt(t *testing.T) {
+	h := NewImageHandler()
+
+	h.ImageService.GetFunc = func(ID string) (progimage.Image, error) {
+		return progimage.Image{ID: ID, Data: new(bytes.Buffer), ContentType: "image/jpeg"}, nil
+	}
+
+	expectedID := "foo.unsupported"
+	req, err := http.NewRequest("GET", "/image/"+expectedID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("expected: %v got: %v", http.StatusOK, status)
 	}
 }
 
