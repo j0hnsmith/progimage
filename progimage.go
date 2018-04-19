@@ -12,3 +12,7 @@ type ImageService interface {
 	Get(ID string) (Image, error)
 	Store(imgRdr io.Reader) (string, error)
 }
+
+type ImageTypeTransformer interface {
+	Transform(Image) (Image, error)
+}
