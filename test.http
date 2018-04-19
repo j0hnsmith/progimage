@@ -1,0 +1,9 @@
+POST localhost:9090/image/create
+
+< ./testimages/test.gif
+
+###
+
+GET localhost:9090/image/e1253904-9302-4985-bc16-44d1958cf172
+
+###
