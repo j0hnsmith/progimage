@@ -1,5 +1,5 @@
 // package s3_test tests the s3 image service against a real s3 api implementation. The following env vars are required
-// to run the tests
+// to run the tests, tests will be skipped if they're not set (go test -v to see skipped tests).
 //
 //     S3_ENDPOINT
 //     S3_ACCESS_KEY
@@ -29,37 +29,8 @@ import (
 
 const testBucketName = "test-bucket-s3"
 
-var c *minio.Client
-
-func init() {
-	// setup
-	var endpoint, accessKey, secretKey string
-	var secure bool
-
-	if endpoint = os.Getenv("S3_ENDPOINT"); endpoint == "" {
-		panic("env var S3_ENDPOINT is required")
-	}
-	if accessKey = os.Getenv("S3_ACCESS_KEY"); accessKey == "" {
-		panic("env var S3_ACCESS_KEY is required")
-	}
-	if secretKey = os.Getenv("S3_SECRET_KEY"); secretKey == "" {
-		panic("env var S3_SECRET_KEY is required")
-	}
-	if s := os.Getenv("S3_SECURE"); s == "" {
-		panic("env var S3_SECURE is required")
-	} else {
-		secure = s == "true"
-	}
-
-	var err error
-	c, err = minio.New(endpoint, accessKey, secretKey, secure)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // setup deletes all objects in the test bucket then deletes the bucket.
-func setup(t *testing.T) {
+func setup(t *testing.T, c *minio.Client) {
 	if exists, err := c.BucketExists(testBucketName); err != nil {
 		t.Fatal(err)
 	} else if !exists {
@@ -83,6 +54,32 @@ func setup(t *testing.T) {
 	}
 }
 
+func checkEnvsAndGetClient(t *testing.T) *minio.Client {
+	var endpoint, accessKey, secretKey string
+	var secure bool
+
+	if endpoint = os.Getenv("S3_ENDPOINT"); endpoint == "" {
+		t.Skip("skipping test; $S3_ENDPOINT not set")
+	}
+	if accessKey = os.Getenv("S3_ACCESS_KEY"); accessKey == "" {
+		t.Skip("skipping test; $S3_ACCESS_KEY not set")
+	}
+	if secretKey = os.Getenv("S3_SECRET_KEY"); secretKey == "" {
+		t.Skip("skipping test; $S3_SECRET_KEY not set")
+	}
+	if s := os.Getenv("S3_SECURE"); s == "" {
+		t.Skip("skipping test; $S3_SECURE not set")
+	} else {
+		secure = s == "true"
+	}
+
+	c, err := minio.New(endpoint, accessKey, secretKey, secure)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
 var fileTests = []struct {
 	Name        string
 	Path        string
@@ -96,9 +93,11 @@ var fileTests = []struct {
 // Test storing and retrieving images of each type, a missed import will cause a failure, see
 // https://golang.org/pkg/image/#pkg-overview
 func TestImageService_StoreGetImage(t *testing.T) {
+	c := checkEnvsAndGetClient(t)
+
 	for _, item := range fileTests {
 		t.Run(item.Name, func(t *testing.T) {
-			setup(t)
+			setup(t, c)
 
 			uid := uuid.New()
 			uf := func() uuid.UUID {
@@ -170,7 +169,8 @@ func TestImageService_StoreGetImage(t *testing.T) {
 }
 
 func TestImageService_StoreNoData(t *testing.T) {
-	setup(t)
+	c := checkEnvsAndGetClient(t)
+	setup(t, c)
 
 	is := s3.NewImageService(testBucketName, c, uuid.New)
 	if err := is.EnsureBucket(); err != nil {
@@ -184,7 +184,8 @@ func TestImageService_StoreNoData(t *testing.T) {
 }
 
 func TestImageService_GetNotExists(t *testing.T) {
-	setup(t)
+	c := checkEnvsAndGetClient(t)
+	setup(t, c)
 
 	is := s3.NewImageService(testBucketName, c, uuid.New)
 	if err := is.EnsureBucket(); err != nil {
