@@ -11,6 +11,7 @@ import (
 	primage "github.com/j0hnsmith/progimage/image"
 )
 
+// Transformer implements progimage.ImageTypeTransformer to convert a progimage.Image to jpeg format.
 var Transformer = primage.Transformer{
 	Name:        "jpeg",
 	ContentType: "image/jpeg",

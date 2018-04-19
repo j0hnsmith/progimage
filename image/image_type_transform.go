@@ -14,6 +14,7 @@ import (
 
 var _ progimage.ImageTypeTransformer = Transformer{}
 
+// Transformer enables progimage.ImageTypeTransformer implementations to be created easily avoiding code duplication.
 type Transformer struct {
 	ContentType string
 	Encoder     func(io.Writer, image.Image) error
