@@ -1,0 +1,143 @@
+package http_test
+
+import (
+	"net/http/httptest"
+	"testing"
+
+	"net/http"
+
+	"bytes"
+
+	"io"
+
+	"encoding/json"
+
+	"github.com/j0hnsmith/progimage"
+	pihttp "github.com/j0hnsmith/progimage/http"
+	"github.com/j0hnsmith/progimage/mock"
+)
+
+// ImageHandler is test wrapper that uses a mocked image service.
+type ImageHandler struct {
+	*pihttp.ImageHandler
+
+	ImageService *mock.ImageService
+}
+
+func NewImageHandler() *ImageHandler {
+	is := new(mock.ImageService)
+	ih := pihttp.NewImageHandler(is)
+	return &ImageHandler{ih, is}
+}
+
+func TestGet_OK(t *testing.T) {
+	h := NewImageHandler()
+
+	var createdID string
+	h.ImageService.GetFunc = func(ID string) (progimage.Image, error) {
+		createdID = ID
+		return progimage.Image{Data: new(bytes.Reader)}, nil
+	}
+
+	expectedID := "foo"
+	req, err := http.NewRequest("GET", "/image/"+expectedID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("expected: %v got: %v", http.StatusOK, status)
+	}
+
+	if expectedID != createdID {
+		t.Errorf("expected id to be: %v got: %v", expectedID, createdID)
+	}
+}
+
+func TestGet_NotFound(t *testing.T) {
+	h := NewImageHandler()
+
+	h.ImageService.GetFunc = func(ID string) (progimage.Image, error) {
+		return progimage.Image{}, progimage.ErrImageNotFound
+	}
+
+	expectedID := "foo"
+	req, err := http.NewRequest("GET", "/image/"+expectedID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Errorf("expected: %v got: %v", http.StatusNotFound, status)
+	}
+}
+
+func TestStore_OK(t *testing.T) {
+	h := NewImageHandler()
+
+	expectedID := "foo"
+	dataIn := new(bytes.Buffer)
+	h.ImageService.StoreFunc = func(r io.Reader) (string, error) {
+		io.Copy(dataIn, r)
+		return expectedID, nil
+	}
+
+	imgData := "some img data"
+	req, err := http.NewRequest("POST", "/image/create", bytes.NewReader([]byte(imgData)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("expected: %v got: %v", http.StatusCreated, status)
+	}
+
+	type respData struct {
+		ID string
+	}
+	rd := new(respData)
+	if err := json.NewDecoder(rr.Body).Decode(rd); err != nil {
+		t.Fatal(err)
+	}
+
+	if expectedID != rd.ID {
+		t.Errorf("expected id to be: %v got: %v", expectedID, rd)
+	}
+
+	if imgData != dataIn.String() {
+		t.Errorf("expected data read to be '%s', got '%s'", imgData, dataIn.String())
+	}
+}
+
+func TestStore_UnregognisedImagetype(t *testing.T) {
+	h := NewImageHandler()
+
+	h.ImageService.StoreFunc = func(r io.Reader) (string, error) {
+		return "", progimage.ErrUnrecognisedImageType
+	}
+
+	req, err := http.NewRequest("POST", "/image/create", new(bytes.Reader))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("expected: %v got: %v", http.StatusBadRequest, status)
+	}
+}
