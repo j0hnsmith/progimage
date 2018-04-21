@@ -1,10 +1,9 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"os"
-
-	"context"
 	"os/signal"
 	"time"
 

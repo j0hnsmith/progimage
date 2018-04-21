@@ -1,11 +1,9 @@
 package http
 
 import (
-	"net/http"
-
 	"fmt"
 	"io"
-
+	"net/http"
 	"strings"
 
 	"github.com/j0hnsmith/progimage"

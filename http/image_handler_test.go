@@ -1,20 +1,14 @@
 package http_test
 
 import (
-	"net/http/httptest"
-	"testing"
-
-	"net/http"
-
 	"bytes"
-
-	"io"
-
 	"encoding/json"
-
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
-
 	"strings"
+	"testing"
 
 	"github.com/j0hnsmith/progimage"
 	pihttp "github.com/j0hnsmith/progimage/http"

@@ -1,12 +1,10 @@
 package imagetransform
 
 import (
+	"bytes"
+	"fmt"
 	"image"
 	"io"
-
-	"fmt"
-
-	"bytes"
 
 	"github.com/j0hnsmith/progimage"
 	"github.com/pkg/errors"

@@ -1,11 +1,9 @@
 package http_test
 
 import (
-	"testing"
-
 	"bytes"
-
 	"context"
+	"testing"
 	"time"
 
 	pihttp "github.com/j0hnsmith/progimage/http"

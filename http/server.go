@@ -1,12 +1,10 @@
 package http
 
 import (
+	"context"
+	"io"
 	"net/http"
 	"time"
-
-	"io"
-
-	"context"
 
 	"github.com/gorilla/handlers"
 )

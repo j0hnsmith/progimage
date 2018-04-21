@@ -1,13 +1,10 @@
 package http
 
 import (
-	"io"
-
-	"net/http"
-
-	"fmt"
-
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/j0hnsmith/progimage"
 	"github.com/pkg/errors"

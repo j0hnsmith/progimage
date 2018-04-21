@@ -12,13 +12,11 @@
 package s3_test
 
 import (
-	"testing"
-
-	"io/ioutil"
-
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
+	"testing"
 
 	"github.com/google/uuid"
 	"github.com/j0hnsmith/progimage"
