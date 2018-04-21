@@ -14,5 +14,5 @@ type ImageService interface {
 }
 
 type ImageTypeTransformer interface {
-	Transform(Image) (Image, error)
+	Transform(Image, chan error) (Image, error)
 }

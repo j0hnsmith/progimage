@@ -34,7 +34,8 @@ func TestTransformGif(t *testing.T) {
 				Data:        fp,
 			}
 
-			imgOut, err := gif.Transformer.Transform(img)
+			errCh := make(chan error, 1)
+			imgOut, err := gif.Transformer.Transform(img, errCh)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,6 +46,9 @@ func TestTransformGif(t *testing.T) {
 			}
 			if typ != "gif" {
 				t.Errorf("expected type of converted image to be gif, got %s", typ)
+			}
+			if err := <-errCh; err != nil {
+				t.Errorf("got error converting image %s", err)
 			}
 		})
 	}

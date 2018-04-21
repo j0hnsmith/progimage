@@ -1,7 +1,6 @@
 package imagetransform
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"io"
@@ -19,8 +18,9 @@ type Transformer struct {
 	Name        string
 }
 
-func (t Transformer) Transform(img progimage.Image) (progimage.Image, error) {
+func (t Transformer) Transform(img progimage.Image, ec chan error) (progimage.Image, error) {
 	if img.ContentType == t.ContentType {
+		ec <- nil
 		return img, nil
 	}
 	ret := progimage.Image{}
@@ -28,12 +28,20 @@ func (t Transformer) Transform(img progimage.Image) (progimage.Image, error) {
 	if err != nil {
 		return ret, errors.Wrap(err, fmt.Sprintf("unable to decode %s image", t.Name))
 	}
-	b := new(bytes.Buffer) // using io.Pipe() causes a deadlock (obviously), would be nice not to write into memory
-	if err := t.Encoder(b, i); err != nil {
-		return ret, errors.Wrap(err, fmt.Sprintf("unable to encode %s image", t.Name))
-	}
+
+	r, w := io.Pipe()
+	go func() {
+		if err := t.Encoder(w, i); err != nil {
+			ec <- errors.Wrap(err, fmt.Sprintf("unable to encode %s image", t.Name))
+			w.Close()
+			return
+		}
+		ec <- nil
+		w.Close()
+	}()
+
 	ret.ID = img.ID
 	ret.ContentType = t.ContentType
-	ret.Data = b
+	ret.Data = r
 	return ret, nil
 }

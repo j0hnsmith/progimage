@@ -34,7 +34,8 @@ func TestTransformPNG(t *testing.T) {
 				Data:        fp,
 			}
 
-			imgOut, err := jpeg.Transformer.Transform(img)
+			errCh := make(chan error, 1)
+			imgOut, err := jpeg.Transformer.Transform(img, errCh)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,6 +46,9 @@ func TestTransformPNG(t *testing.T) {
 			}
 			if typ != "jpeg" {
 				t.Errorf("expected type of converted image to be jpeg, got %s", typ)
+			}
+			if err := <-errCh; err != nil {
+				t.Errorf("got error converting image %s", err)
 			}
 		})
 	}

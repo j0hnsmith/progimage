@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -92,7 +93,7 @@ func (h ImageHandler) handleGetImageWithExt(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "unsupported image type", http.StatusBadRequest)
 		return
 	}
-	img, err := h.ImageService.Get(ID)
+	imgOrig, err := h.ImageService.Get(ID)
 	if err != nil {
 		if err == progimage.ErrImageNotFound {
 			http.Error(w, fmt.Sprintf("image %s not found", ID), http.StatusNotFound)
@@ -102,12 +103,26 @@ func (h ImageHandler) handleGetImageWithExt(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	img, err = tr.Transform(img)
+	ec := make(chan error, 1)
+	imgConv, err := tr.Transform(imgOrig, ec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", img.ContentType)
-	io.Copy(w, img.Data)
+	w.Header().Set("Content-Type", imgConv.ContentType)
+	written, err := io.Copy(w, imgConv.Data)
+	if err != nil {
+		if written == 0 {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			// 200 sent already, all we can do is log
+			log.Printf(
+				"error converting %s to %s (id: %s), 200 sent already",
+				imgOrig.ContentType,
+				imgConv.ContentType,
+				imgOrig.ID,
+			)
+		}
+	}
 }
