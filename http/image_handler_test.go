@@ -109,8 +109,8 @@ func TestGet_WithExt(t *testing.T) {
 		t.Errorf("expected: %v got: %v", http.StatusOK, status)
 	}
 
-	if rr.Header().Get("ContentType") != "image/png" {
-		t.Errorf("expected ContentType image/png, got: %v", rr.Header().Get("ContentType"))
+	if rr.Header().Get("Content-Type") != "image/png" {
+		t.Errorf("expected Content-Type image/png, got: %v", rr.Header().Get("Content-Type"))
 	}
 
 	if getID != strings.Split(expectedID, ".")[0] {

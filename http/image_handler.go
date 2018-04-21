@@ -53,7 +53,7 @@ func (h ImageHandler) handleCreateImage(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	w.Header().Set("ContentType", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf(`{"id": "%s"}`, ID)))
 }
@@ -82,7 +82,7 @@ func (h ImageHandler) handleGetImageNoExt(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("ContentType", img.ContentType)
+	w.Header().Set("Content-Type", img.ContentType)
 	io.Copy(w, img.Data)
 }
 
@@ -108,6 +108,6 @@ func (h ImageHandler) handleGetImageWithExt(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.Header().Set("ContentType", img.ContentType)
+	w.Header().Set("Content-Type", img.ContentType)
 	io.Copy(w, img.Data)
 }
