@@ -7,7 +7,9 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"mime"
+	"log"
+	"net/http"
+	"strings"
 
 	"github.com/j0hnsmith/progimage"
 	"github.com/minio/minio-go"
@@ -75,26 +77,60 @@ func (is *ImageService) Get(ID string) (progimage.Image, error) {
 
 // Store validates data is an image (read into memory), persists the image and returns the id.
 func (is *ImageService) Store(rawImg io.Reader) (string, error) {
-	// validate we have an image that we can process
-	// optimisation: to avoid reading entire image into memory, https://golang.org/pkg/net/http/#DetectContentTypec,
-	// doesn't mean that an image is valid though
-	b := &bytes.Buffer{}
-	tr := io.TeeReader(rawImg, b)
-
-	var typ string
-	var err error
-	if _, typ, err = image.Decode(tr); err != nil {
+	// extract the mime type from the header
+	b := make([]byte, 20)
+	if _, err := rawImg.Read(b); err != io.EOF && err != nil {
+		return "", errors.Wrap(err, "unable to read image data")
+	}
+	contentType := http.DetectContentType(b)
+	if !strings.HasPrefix(contentType, "image") {
+		// not an image, bail
 		return "", progimage.ErrUnrecognisedImageType
 	}
 
+	// create 2 readers of rawImg (reads need to be syncronised, will block otherwise)
+	pr, pw := io.Pipe()
+	tr := io.TeeReader(io.MultiReader(bytes.NewReader(b), rawImg), pw)
+
+	var err error
+	errCh := make(chan error, 1)
+
 	u := is.UUID()
-	_, err = is.Client.PutObject(
-		is.BucketName, u.String(),
-		b, int64(b.Len()),
-		minio.PutObjectOptions{ContentType: mime.TypeByExtension("." + typ)},
-	)
-	if err != nil {
-		return "", errors.Wrap(err, "error uploading image to s3")
+	go func() {
+		_, err := is.Client.PutObject(
+			is.BucketName, u.String(),
+			pr, -1,
+			minio.PutObjectOptions{ContentType: contentType},
+		)
+		errCh <- err
+	}()
+
+	var uploadErr error
+	var decodeErr error
+	if _, _, decodeErr = image.Decode(tr); decodeErr != nil {
+		pw.Close() // io.EOF
+		uploadErr = <-errCh
+
+		// delete uploaded image
+		if err = is.Client.RemoveObject(is.BucketName, u.String()); err != nil {
+			if uploadErr != nil {
+				// Let's assume not uploaded to avoid further complexity in this example
+				return "", progimage.ErrUnrecognisedImageType
+			}
+
+			// file not valid image, file uploaded ok but delete failed
+			log.Printf("error deleting invalid image %s, %s", u, err)
+			return "", progimage.ErrUnrecognisedImageType
+		}
+
+		return "", progimage.ErrUnrecognisedImageType
+	} else {
+		pw.Close() // io.EOF
+		uploadErr = <-errCh
+	}
+
+	if uploadErr != nil {
+		return "", errors.Wrap(uploadErr, "error uploading image to s3")
 	}
 
 	return u.String(), nil
