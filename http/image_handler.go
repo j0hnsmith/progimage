@@ -16,13 +16,15 @@ import (
 
 const maxReadBytes = 50 * 1024 * 1024 // 50mb
 
-// Image handler is an http.Handler that provides store and retrieve image endpoints.
+// ImageHandler is a http.Handler that provides store and retrieve image endpoints.
 type ImageHandler struct {
 	*httprouter.Router
 
 	Transformers map[string]progimage.ImageTypeTransformer
 	ImageService progimage.ImageService
 }
+
+var _ http.Handler = ImageHandler{} // via httprouter.Router
 
 // NewImageHandler returns an initialised image handler.
 func NewImageHandler(is progimage.ImageService) *ImageHandler {
