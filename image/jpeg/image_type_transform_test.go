@@ -53,3 +53,40 @@ func TestTransformPNG(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkTransformToJPEG(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for _, item := range fileTests {
+			b.Run(item.Name, func(b *testing.B) {
+				fp, err := os.Open(item.Path)
+				if err != nil {
+					b.Fatal(err)
+				}
+				defer fp.Close()
+
+				img := progimage.Image{
+					ID:          item.Name,
+					ContentType: item.ContentType,
+					Data:        fp,
+				}
+
+				errCh := make(chan error, 1)
+				imgOut, err := jpeg.Transformer.Transform(img, errCh)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				_, typ, err := image.Decode(imgOut.Data)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if typ != "jpeg" {
+					b.Errorf("expected type of converted image to be jpeg, got %s", typ)
+				}
+				if err := <-errCh; err != nil {
+					b.Errorf("got error converting image %s", err)
+				}
+			})
+		}
+	}
+}
