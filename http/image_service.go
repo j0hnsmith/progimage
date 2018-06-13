@@ -15,6 +15,8 @@ type ImageService struct {
 	Client  *http.Client
 }
 
+var _ progimage.ImageService = ImageService{}
+
 func (is ImageService) Get(ID string) (progimage.Image, error) {
 	resp, err := is.Client.Get(is.BaseUrl + "/image/" + ID)
 	ret := progimage.Image{}
