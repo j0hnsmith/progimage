@@ -14,8 +14,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-const MaxReadBytes = 50 * 1024 * 1024 // 50mb
+const maxReadBytes = 50 * 1024 * 1024 // 50mb
 
+// Image handler is an http.Handler that provides store and retrieve image endpoints.
 type ImageHandler struct {
 	*httprouter.Router
 
@@ -41,7 +42,7 @@ func NewImageHandler(is progimage.ImageService) *ImageHandler {
 
 func (h ImageHandler) handleCreateImage(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	// don't allow an attacker to send an unlimited stream of bytes
-	lr := io.LimitReader(r.Body, MaxReadBytes)
+	lr := io.LimitReader(r.Body, maxReadBytes)
 
 	ID, err := h.ImageService.Store(lr)
 	if err != nil {
