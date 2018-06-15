@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"log"
 
 	"github.com/j0hnsmith/progimage"
 	"github.com/pkg/errors"
@@ -18,6 +19,7 @@ type Transformer struct {
 	Name        string
 }
 
+// Transform the given image to the desired format.
 func (t Transformer) Transform(img progimage.Image, ec chan error) (progimage.Image, error) {
 	if img.ContentType == t.ContentType {
 		ec <- nil
@@ -33,11 +35,17 @@ func (t Transformer) Transform(img progimage.Image, ec chan error) (progimage.Im
 	go func() {
 		if err := t.Encoder(w, i); err != nil {
 			ec <- errors.Wrap(err, fmt.Sprintf("unable to encode %s image", t.Name))
-			w.Close()
+			closeErr := w.Close()
+			if closeErr != nil {
+				log.Println("error closing pipe (unable to encode)", closeErr.Error())
+			}
 			return
 		}
 		ec <- nil
-		w.Close()
+		closeErr := w.Close()
+		if closeErr != nil {
+			log.Println("error closing pipe", closeErr.Error())
+		}
 	}()
 
 	ret.ID = img.ID

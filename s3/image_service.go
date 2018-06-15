@@ -3,9 +3,9 @@ package s3
 import (
 	"bytes"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+	_ "image/gif"  // import to register
+	_ "image/jpeg" // import to register
+	_ "image/png"  // import to register
 	"io"
 	"log"
 	"net/http"
@@ -97,18 +97,19 @@ func (is *ImageService) Store(rawImg io.Reader) (string, error) {
 
 	u := is.UUID()
 	go func() {
-		_, err := is.Client.PutObject(
+		_, putErr := is.Client.PutObject(
 			is.BucketName, u.String(),
 			pr, -1,
 			minio.PutObjectOptions{ContentType: contentType},
 		)
-		errCh <- err
+		errCh <- putErr
 	}()
 
 	var uploadErr error
 	var decodeErr error
 	if _, _, decodeErr = image.Decode(tr); decodeErr != nil {
-		pw.Close() // io.EOF
+		// io.EOF to read side
+		pw.Close() // nolint: gas,errcheck
 		uploadErr = <-errCh
 
 		// delete uploaded image
@@ -124,10 +125,11 @@ func (is *ImageService) Store(rawImg io.Reader) (string, error) {
 		}
 
 		return "", progimage.ErrUnrecognisedImageType
-	} else {
-		pw.Close() // io.EOF
-		uploadErr = <-errCh
 	}
+
+	// nolint: gas,errcheck
+	pw.Close() // io.EOF to read side
+	uploadErr = <-errCh
 
 	if uploadErr != nil {
 		return "", errors.Wrap(uploadErr, "error uploading image to s3")

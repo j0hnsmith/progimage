@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -10,15 +9,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ImageService is a progimage.ImageService that makes requests to a http server.
 type ImageService struct {
-	BaseUrl string
+	BaseURL string
 	Client  *http.Client
 }
 
 var _ progimage.ImageService = ImageService{}
 
+// Get the image for the given ID.
 func (is ImageService) Get(ID string) (progimage.Image, error) {
-	resp, err := is.Client.Get(is.BaseUrl + "/image/" + ID)
+	resp, err := is.Client.Get(is.BaseURL + "/image/" + ID)
 	ret := progimage.Image{}
 	if err != nil {
 		return ret, errors.Wrap(err, "unable to make get request")
@@ -27,7 +28,7 @@ func (is ImageService) Get(ID string) (progimage.Image, error) {
 		if resp.StatusCode == http.StatusNotFound {
 			return ret, progimage.ErrImageNotFound
 		}
-		return ret, errors.New(fmt.Sprintf("unknown error getting image, status code %s", resp.StatusCode))
+		return ret, errors.Errorf("unknown error getting image, status code %d", resp.StatusCode)
 	}
 
 	ret.ID = ID
@@ -36,8 +37,9 @@ func (is ImageService) Get(ID string) (progimage.Image, error) {
 	return ret, nil
 }
 
+// Store an image.
 func (is ImageService) Store(imgRdr io.Reader) (string, error) {
-	req, err := http.NewRequest("POST", is.BaseUrl+"/image/create", imgRdr)
+	req, err := http.NewRequest("POST", is.BaseURL+"/image/create", imgRdr)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to create new http request")
 	}
@@ -46,7 +48,7 @@ func (is ImageService) Store(imgRdr io.Reader) (string, error) {
 		return "", errors.Wrap(err, "unable to make post request")
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return "", errors.New(fmt.Sprintf("unknown error creating new image, status code %s", resp.StatusCode))
+		return "", errors.Errorf("unknown error creating new image, status code %d", resp.StatusCode)
 	}
 
 	rd := new(respData)

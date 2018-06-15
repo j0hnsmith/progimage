@@ -4,6 +4,6 @@ POST localhost:9090/image/create
 
 ###
 
-GET localhost:9090/image/e1253904-9302-4985-bc16-44d1958cf172
+GET localhost:9090/image/353f9e46-3e6f-4a3c-9064-5c54ecaa9718.png
 
 ###

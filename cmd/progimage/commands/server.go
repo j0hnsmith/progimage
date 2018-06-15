@@ -29,7 +29,11 @@ func init() {
 	serverCmd.Flags().StringVarP(&secretKey, "secretkey", "s", "miniostorage", "Storage secret key")
 	serverCmd.Flags().StringVarP(&endpoint, "endpoint", "e", "", "Storage endpoint")
 	secure = serverCmd.Flags().Bool("secure", false, "Secure storage eg TLS")
-	serverCmd.MarkFlagRequired("endpoint")
+	err := serverCmd.MarkFlagRequired("endpoint")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error()) // nolint: errcheck,gas
+		os.Exit(1)
+	}
 }
 
 var serverCmd = &cobra.Command{
@@ -46,7 +50,7 @@ var serverCmd = &cobra.Command{
 		uuid.New()
 		is := s3.NewImageService(bucketName, c, uuid.New)
 		if err := is.EnsureBucket(); err != nil {
-			fmt.Fprintf(os.Stdout, "error checking bucket exists: %+v\n", err)
+			fmt.Fprintf(os.Stdout, "error checking bucket exists: %+v\n", err) // nolint: gas,errcheck
 		}
 		ih := http.NewImageHandler(is)
 		s := http.Server{
@@ -60,24 +64,24 @@ var serverCmd = &cobra.Command{
 
 		go func() {
 			<-quit
-			fmt.Fprint(os.Stdout, "stopping server\n")
+			fmt.Fprint(os.Stdout, "stopping server\n") // nolint: gas,errcheck
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
 
 			if err := s.Stop(ctx); err != nil {
-				fmt.Fprintf(os.Stdout, "unable to shutdown gracefully %s\n:", err)
+				fmt.Fprintf(os.Stdout, "unable to shutdown gracefully %s\n:", err) // nolint: gas,errcheck
 			}
 			close(done)
 		}()
 
-		fmt.Fprintf(os.Stdout, "started server on %s\n", addr)
+		fmt.Fprintf(os.Stdout, "started server on %s\n", addr) // nolint: gas,errcheck
 		if err := s.Start(os.Stdout); err != nil {
 			return err
 		}
 
 		<-done
-		fmt.Fprint(os.Stdout, "goodbye\n")
+		fmt.Fprint(os.Stdout, "goodbye\n") // nolint: gas,errcheck
 
 		return nil
 	},

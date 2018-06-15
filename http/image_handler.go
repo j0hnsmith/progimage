@@ -59,7 +59,10 @@ func (h ImageHandler) handleCreateImage(w http.ResponseWriter, r *http.Request, 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(`{"id": "%s"}`, ID)))
+	_, err = w.Write([]byte(fmt.Sprintf(`{"id": "%s"}`, ID)))
+	if err != nil {
+		log.Println("error writing handleCreateImage response", err.Error())
+	}
 }
 
 func (h ImageHandler) handleGetImage(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -72,7 +75,6 @@ func (h ImageHandler) handleGetImage(w http.ResponseWriter, r *http.Request, par
 	}
 
 	h.handleGetImageNoExt(w, r, ID)
-	return
 }
 
 func (h ImageHandler) handleGetImageNoExt(w http.ResponseWriter, r *http.Request, ID string) {
@@ -87,7 +89,10 @@ func (h ImageHandler) handleGetImageNoExt(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", img.ContentType)
-	io.Copy(w, img.Data)
+	_, err = io.Copy(w, img.Data)
+	if err != nil {
+		log.Println("error writing handleGetImageNoExt response", err.Error())
+	}
 }
 
 func (h ImageHandler) handleGetImageWithExt(w http.ResponseWriter, r *http.Request, ID, ext string) {

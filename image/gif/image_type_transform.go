@@ -3,8 +3,8 @@ package gif
 import (
 	"image"
 	"image/gif"
-	_ "image/jpeg"
-	_ "image/png"
+	_ "image/jpeg" // import to register image type
+	_ "image/png"  // import to register image type
 	"io"
 
 	primage "github.com/j0hnsmith/progimage/image"

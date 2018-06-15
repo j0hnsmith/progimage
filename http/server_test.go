@@ -31,8 +31,7 @@ func TestServer_StartStop(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	var stopErr error
-	stopErr = s.Stop(ctx)
+	stopErr := s.Stop(ctx)
 
 	if startErr != nil {
 		t.Errorf("got error when starting (or stopping) server, %+v", startErr)

@@ -2,9 +2,7 @@ package jpeg
 
 import (
 	"image"
-	_ "image/gif"
 	"image/jpeg"
-	_ "image/png"
 	"io"
 
 	primage "github.com/j0hnsmith/progimage/image"

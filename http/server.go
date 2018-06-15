@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/handlers"
 )
 
+// Server combines an ImageHandler with a http.Server.
 type Server struct {
 	ImageHandler ImageHandler
 	Addr         string
