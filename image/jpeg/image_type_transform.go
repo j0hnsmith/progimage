@@ -2,7 +2,9 @@ package jpeg
 
 import (
 	"image"
+	_ "image/gif" // register image type, do not remove
 	"image/jpeg"
+	_ "image/png" // register image type, do not remove
 	"io"
 
 	primage "github.com/j0hnsmith/progimage/image"
