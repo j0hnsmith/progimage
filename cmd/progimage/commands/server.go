@@ -37,7 +37,7 @@ func init() {
 }
 
 var serverCmd = &cobra.Command{
-	Use:   "server <addr>",
+	Use:   "server",
 	Short: "Runs an image processing http server",
 	Long:  "Runs an image processing http server",
 	Args:  cobra.NoArgs,
