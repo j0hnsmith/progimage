@@ -9,10 +9,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+type GetterDoer interface {
+	Get(string) (*http.Response, error)
+	Do(r *http.Request) (*http.Response, error)
+}
+
 // ImageService is a progimage.ImageService that makes requests to a http server.
 type ImageService struct {
 	BaseURL string
-	Client  *http.Client
+	Client  GetterDoer
 }
 
 var _ progimage.ImageService = ImageService{}
