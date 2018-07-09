@@ -77,9 +77,12 @@ func (is *ImageService) Get(ID string) (progimage.Image, error) {
 
 // Store validates data is an image (read into memory), persists the image and returns the id.
 func (is *ImageService) Store(rawImg io.Reader) (string, error) {
+	// limit max size
+	lr := io.LimitReader(rawImg, 20*1024*1024) // 20mb, refactor to config object so value can be set/modified
+
 	// extract the mime type from the header
 	b := make([]byte, 20)
-	if _, err := rawImg.Read(b); err != io.EOF && err != nil {
+	if _, err := lr.Read(b); err != io.EOF && err != nil {
 		return "", errors.Wrap(err, "unable to read image data")
 	}
 	contentType := http.DetectContentType(b)
