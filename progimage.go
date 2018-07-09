@@ -9,7 +9,7 @@ type Image struct {
 	ContentType string
 }
 
-// ImageService is an iterface for a service that can store and retrieve images.
+// ImageService is an interface for a service that can store and retrieve images.
 type ImageService interface {
 	Get(ID string) (Image, error)
 	Store(imgRdr io.Reader) (string, error)

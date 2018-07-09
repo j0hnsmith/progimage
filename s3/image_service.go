@@ -91,6 +91,11 @@ func (is *ImageService) Store(rawImg io.Reader) (string, error) {
 		return "", progimage.ErrUnrecognisedImageType
 	}
 
+	// create 2 readers of image data, one is used to decode to ensure we have a valid image, the other is used
+	// to upload to s3, both things happen at the same time. In the event that data is not a valid image, we
+	// delete the uploaded object from s3. In theory we don't need to hold both the image bytes and the Image
+	// object in memory so this should improve performance.
+
 	// create 2 readers of rawImg (reads need to be syncronised, will block otherwise)
 	pr, pw := io.Pipe()
 	tr := io.TeeReader(io.MultiReader(bytes.NewReader(b), rawImg), pw)
@@ -108,6 +113,7 @@ func (is *ImageService) Store(rawImg io.Reader) (string, error) {
 		errCh <- putErr
 	}()
 
+	// decode the image to ensure we have a valid image
 	var uploadErr error
 	var decodeErr error
 	if _, _, decodeErr = image.Decode(tr); decodeErr != nil {
